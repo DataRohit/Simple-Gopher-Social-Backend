@@ -21,3 +21,9 @@ type userPasswordResetPayload struct {
 	Password        string `json:"password" validate:"required,min=8"`
 	ConfirmPassword string `json:"confirm_password" validate:"required,eqfield=Password"`
 }
+
+type googleLoginPayload struct {
+	Email      string `json:"email" validate:"required,email"`
+	GivenName  string `json:"given_name" validate:"required"`
+	FamilyName string `json:"family_name" validate:"required"`
+}

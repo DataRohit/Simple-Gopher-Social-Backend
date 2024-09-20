@@ -28,6 +28,8 @@ func (app *Application) mountRoutes(router chi.Router) {
 	router.Post("/auth/logout", app.Handlers.AuthenticationHandler.LogoutUserHandler)
 	router.Post("/auth/forgot-password", app.Handlers.AuthenticationHandler.ForgotPasswordHandler)
 	router.Post("/auth/reset-password/{token}", app.Handlers.AuthenticationHandler.ResetPasswordHandler)
+	router.Get("/auth/google/login", app.Handlers.AuthenticationHandler.GoogleLoginHandler)
+	router.Get("/auth/google/callback", app.Handlers.AuthenticationHandler.GoogleCallbackHandler)
 }
 
 func (app *Application) prepareDatabase() {

@@ -18,6 +18,7 @@ type User struct {
 	Password    string    `json:"password" gorm:"type:varchar(100);not null"`
 	Role        UserRole  `json:"role" gorm:"type:user_role;not null;default:'user'"`
 	IsActivated bool      `json:"is_activated" gorm:"default:false"`
+	GoogleAuth  bool      `json:"google_auth" gorm:"default:false"`
 	CreatedAt   int64     `json:"created_at" gorm:"autoCreateTime"`
 	UpdatedAt   int64     `json:"updated_at" gorm:"autoUpdateTime"`
 }

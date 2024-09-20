@@ -1,6 +1,8 @@
 package authentication
 
 import (
+	"context"
+	"encoding/json"
 	"gopher-social-backend-server/pkg/mailer"
 	"gopher-social-backend-server/pkg/utils"
 	"net/http"
@@ -9,11 +11,13 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/oauth2"
 )
 
 var validate = validator.New()
 
 var BCRYPT_COST = utils.GetEnvAsInt("BCRYPT_COST", 10)
+var OAUTH_STATE = utils.GetEnvAsString("OAUTH_STATE", "randomstate")
 
 type AuthenticationHandler struct {
 	AuthenticationStore AuthenticationStore
@@ -115,6 +119,11 @@ func (h *AuthenticationHandler) LoginUserHandler(w http.ResponseWriter, r *http.
 
 	if !user.IsActivated {
 		utils.WriteError(w, http.StatusUnauthorized, "account is not activated")
+		return
+	}
+
+	if user.GoogleAuth {
+		utils.WriteError(w, http.StatusUnauthorized, "use google login")
 		return
 	}
 
@@ -227,4 +236,63 @@ func (h *AuthenticationHandler) ResetPasswordHandler(w http.ResponseWriter, r *h
 		utils.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
+}
+
+func (h *AuthenticationHandler) GoogleLoginHandler(w http.ResponseWriter, r *http.Request) {
+	url := utils.GoogleOauthConfig.AuthCodeURL(OAUTH_STATE, oauth2.AccessTypeOffline)
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"url": url})
+}
+
+func (h *AuthenticationHandler) GoogleCallbackHandler(w http.ResponseWriter, r *http.Request) {
+	state := r.URL.Query().Get("state")
+	if state != OAUTH_STATE {
+		http.Error(w, "State is invalid", http.StatusBadRequest)
+		return
+	}
+
+	code := r.URL.Query().Get("code")
+	token, err := utils.GoogleOauthConfig.Exchange(context.Background(), code)
+	if err != nil {
+		http.Error(w, "Failed to exchange token", http.StatusInternalServerError)
+		return
+	}
+
+	client := utils.GoogleOauthConfig.Client(context.Background(), token)
+	resp, err := client.Get("https://www.googleapis.com/oauth2/v2/userinfo")
+	if err != nil {
+		http.Error(w, "Failed to get user info", http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	var gUser googleLoginPayload
+	if err := json.NewDecoder(resp.Body).Decode(&gUser); err != nil {
+		http.Error(w, "Failed to decode user info", http.StatusInternalServerError)
+		return
+	}
+
+	user := User{
+		FirstName:   gUser.GivenName,
+		LastName:    gUser.FamilyName,
+		Email:       gUser.Email,
+		IsActivated: true,
+		GoogleAuth:  true,
+	}
+
+	existingUser, _ := h.AuthenticationStore.GetUserByEmail(user.Email)
+	if existingUser == nil {
+		h.AuthenticationStore.CreateUser(&user)
+		mailer.SendGoogleWelcomeEmail(user.Email)
+	}
+
+	accessToken, expirationTime := utils.GenerateAccessToken(user.Email)
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "AuthToken",
+		Value:    accessToken,
+		Expires:  expirationTime,
+		HttpOnly: true,
+	})
+
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"token": accessToken})
 }
