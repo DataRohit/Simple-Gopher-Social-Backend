@@ -27,3 +27,8 @@ type googleLoginPayload struct {
 	GivenName  string `json:"given_name" validate:"required"`
 	FamilyName string `json:"family_name" validate:"required"`
 }
+
+type githubLoginPayload struct {
+	Email string `json:"email" validate:"required,email"`
+	Name  string `json:"name" validate:"required"`
+}

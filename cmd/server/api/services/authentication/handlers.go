@@ -6,6 +6,7 @@ import (
 	"gopher-social-backend-server/pkg/mailer"
 	"gopher-social-backend-server/pkg/utils"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -122,8 +123,8 @@ func (h *AuthenticationHandler) LoginUserHandler(w http.ResponseWriter, r *http.
 		return
 	}
 
-	if user.GoogleAuth {
-		utils.WriteError(w, http.StatusUnauthorized, "use google login")
+	if user.OAuth {
+		utils.WriteError(w, http.StatusUnauthorized, "oauth user cannot login with email and password")
 		return
 	}
 
@@ -276,13 +277,81 @@ func (h *AuthenticationHandler) GoogleCallbackHandler(w http.ResponseWriter, r *
 		LastName:    gUser.FamilyName,
 		Email:       gUser.Email,
 		IsActivated: true,
-		GoogleAuth:  true,
+		OAuth:       true,
 	}
 
 	existingUser, _ := h.AuthenticationStore.GetUserByEmail(user.Email)
 	if existingUser == nil {
 		h.AuthenticationStore.CreateUser(&user)
 		mailer.SendGoogleWelcomeEmail(user.Email)
+	}
+
+	accessToken, expirationTime := utils.GenerateAccessToken(user.Email)
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "AuthToken",
+		Value:    accessToken,
+		Expires:  expirationTime,
+		HttpOnly: true,
+	})
+
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"token": accessToken})
+}
+
+func (h *AuthenticationHandler) GitHubLoginHandler(w http.ResponseWriter, r *http.Request) {
+	url := utils.GitHubOauthConfig.AuthCodeURL(OAUTH_STATE, oauth2.AccessTypeOffline)
+	utils.WriteJSON(w, http.StatusOK, map[string]string{"url": url})
+}
+
+func (h *AuthenticationHandler) GitHubCallbackHandler(w http.ResponseWriter, r *http.Request) {
+	state := r.URL.Query().Get("state")
+	if state != OAUTH_STATE {
+		http.Error(w, "State is invalid", http.StatusBadRequest)
+		return
+	}
+
+	code := r.URL.Query().Get("code")
+	token, err := utils.GitHubOauthConfig.Exchange(context.Background(), code)
+	if err != nil {
+		http.Error(w, "Failed to exchange token", http.StatusInternalServerError)
+		return
+	}
+
+	client := utils.GitHubOauthConfig.Client(context.Background(), token)
+	resp, err := client.Get("https://api.github.com/user")
+	if err != nil {
+		http.Error(w, "Failed to get user info", http.StatusInternalServerError)
+		return
+	}
+	defer resp.Body.Close()
+
+	var ghUser githubLoginPayload
+	if err := json.NewDecoder(resp.Body).Decode(&ghUser); err != nil {
+		http.Error(w, "Failed to decode user info", http.StatusInternalServerError)
+		return
+	}
+
+	var firstName, lastName string
+	if ghUser.Name != "" {
+		names := strings.SplitN(ghUser.Name, " ", 2)
+		firstName = names[0]
+		if len(names) > 1 {
+			lastName = names[1]
+		}
+	}
+
+	user := User{
+		FirstName:   firstName,
+		LastName:    lastName,
+		Email:       ghUser.Email,
+		IsActivated: true,
+		OAuth:       true,
+	}
+
+	existingUser, _ := h.AuthenticationStore.GetUserByEmail(user.Email)
+	if existingUser == nil {
+		h.AuthenticationStore.CreateUser(&user)
+		mailer.SendGitHubWelcomeEmail(user.Email)
 	}
 
 	accessToken, expirationTime := utils.GenerateAccessToken(user.Email)
