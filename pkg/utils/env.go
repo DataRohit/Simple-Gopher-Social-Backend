@@ -56,3 +56,11 @@ func GetEnvAsDuration(key string, fallback string) time.Duration {
 
 	return duration
 }
+
+func GetEnvAsByteArr(key string, fallback string) []byte {
+	value, exists := os.LookupEnv(key)
+	if !exists {
+		return []byte(fallback)
+	}
+	return []byte(value)
+}

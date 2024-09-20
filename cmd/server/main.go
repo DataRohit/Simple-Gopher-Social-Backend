@@ -25,10 +25,14 @@ func main() {
 		log.Error("failed to connect to the database", zap.Error(err))
 	}
 
+	store := api.NewStore(postgresDB)
+	handlers := api.NewHandlers(store)
+
 	app := &api.Application{
-		Config:   appConfig,
-		Handlers: api.NewHandlers(),
-		DB:       postgresDB,
+		Config:     appConfig,
+		Store:      store,
+		Handlers:   handlers,
+		PostgresDB: postgresDB,
 	}
 
 	app.Run()

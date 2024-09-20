@@ -7,7 +7,8 @@ type Config struct {
 }
 
 type Application struct {
-	Config   Config
-	Handlers *Handlers
-	DB       *gorm.DB
+	Config     Config
+	Handlers   *Handlers
+	Store      *Store
+	PostgresDB *gorm.DB
 }

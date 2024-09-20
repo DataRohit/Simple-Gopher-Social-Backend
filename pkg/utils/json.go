@@ -1,10 +1,8 @@
 package utils
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 )
 
@@ -18,35 +16,6 @@ func ParseJSON(r *http.Request, payload any) error {
 		return fmt.Errorf("invalid JSON format: %v", err)
 	}
 	return nil
-}
-
-func ReadJSON(r *http.Request) ([]byte, error) {
-	if r.Body == nil {
-		return nil, fmt.Errorf("missing request body")
-	}
-	defer r.Body.Close()
-
-	const maxPayloadSize = 1 * 1024 * 1024
-	buffer := bytes.NewBuffer(make([]byte, 0, maxPayloadSize))
-	lr := io.LimitedReader{R: r.Body, N: maxPayloadSize}
-
-	_, err := io.Copy(buffer, &lr)
-	if err != nil {
-		if err == io.ErrUnexpectedEOF {
-			return nil, fmt.Errorf("payload size exceeds the maximum allowed size of 1 MB")
-		}
-		return nil, fmt.Errorf("unable to read request body: %v", err)
-	}
-
-	decoder := json.NewDecoder(buffer)
-	decoder.DisallowUnknownFields()
-
-	var data interface{}
-	if err := decoder.Decode(&data); err != nil {
-		return nil, fmt.Errorf("invalid JSON format or unknown fields: %v", err)
-	}
-
-	return buffer.Bytes(), nil
 }
 
 func WriteJSON(w http.ResponseWriter, status int, v any) error {

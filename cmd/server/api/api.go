@@ -2,6 +2,8 @@ package api
 
 import (
 	"context"
+	"gopher-social-backend-server/cmd/server/api/services/authentication"
+	"gopher-social-backend-server/internal/database"
 	"gopher-social-backend-server/internal/middlewares"
 	"gopher-social-backend-server/pkg/logger"
 	"gopher-social-backend-server/pkg/ratelimiter"
@@ -19,6 +21,31 @@ var log = logger.GetLogger()
 
 func (app *Application) mountRoutes(router chi.Router) {
 	router.Get("/health/router", app.Handlers.HealthHandler.GetRouterHealthHandler)
+
+	router.Post("/auth/register", app.Handlers.AuthenticationHandler.RegisterUserHandler)
+}
+
+func (app *Application) prepareDatabase() {
+	if err := app.PostgresDB.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`).Error; err != nil {
+		log.Error("could not create extension", zap.String("extension", "uuid-ossp"), zap.Error(err))
+	}
+
+	if err := app.PostgresDB.Exec(`DO $$
+	BEGIN
+		IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
+			CREATE TYPE user_role AS ENUM ('user', 'staff', 'admin');
+		END IF;
+	END $$;`).Error; err != nil {
+		log.Error("could not create type", zap.String("type", "user_role"), zap.Error(err))
+	}
+}
+
+func (app *Application) makeMigrations() {
+	app.prepareDatabase()
+
+	if err := database.MigrateModel(&authentication.User{}); err != nil {
+		log.Error("could not migrate model", zap.String("model", "User"), zap.Error(err))
+	}
 }
 
 func (app *Application) configureRouter() *chi.Mux {
@@ -41,6 +68,7 @@ func (app *Application) configureRouter() *chi.Mux {
 	router.Use(middlewares.RateLimiterMiddleware(rateLimiter))
 	router.Use(middlewares.TimeoutMiddleware(time.Minute))
 
+	app.makeMigrations()
 	app.mountRoutes(router)
 
 	return router

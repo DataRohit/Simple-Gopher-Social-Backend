@@ -36,7 +36,7 @@ func NewPostgresDB() (*gorm.DB, error) {
 			POSTGRES_HOST, POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB, POSTGRES_PORT,
 		)
 
-		PostgresDB, err := gorm.Open(postgres.Open(connectionString), &gorm.Config{})
+		PostgresDB, err = gorm.Open(postgres.Open(connectionString), &gorm.Config{})
 		if err != nil {
 			log.Error("failed to connect to the database", zap.Error(err))
 			return
