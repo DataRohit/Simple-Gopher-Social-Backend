@@ -45,6 +45,9 @@ func (h *AuthenticationHandler) RegisterUserHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
+	token := utils.GenerateActivationToken(user.Email)
+	utils.SendActivationEmail(user.Email, token)
+
 	if err := utils.WriteJSON(w, http.StatusCreated, user); err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err.Error())
 		return

@@ -16,6 +16,8 @@ services:
         depends_on:
             postgres:
                 condition: service_healthy
+            mailpit:
+                condition: service_healthy
 
     postgres:
         image: postgres:16
@@ -35,9 +37,27 @@ services:
             start_period: 10s
             timeout: 10s
 
+    mailpit:
+        image: axllent/mailpit:latest
+        container_name: mailpit
+        volumes:
+            - mailpit_data:/data
+        ports:
+            - "8025:8025"
+            - "1025:1025"
+        networks:
+            - gopher-social-backend-network
+        healthcheck:
+            test: [ "CMD-SHELL", "nc -z localhost 1025" ]
+            interval: 30s
+            retries: 3
+            start_period: 10s
+            timeout: 10s
+
 networks:
     gopher-social-backend-network:
         driver: bridge
 
 volumes:
     postgres_data:
+    mailpit_data:
