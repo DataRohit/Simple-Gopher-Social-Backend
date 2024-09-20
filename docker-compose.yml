@@ -1,0 +1,19 @@
+services:
+    server:
+        build:
+            context: .
+            dockerfile: Dockerfile
+        image: gopher-social-backend-server:master
+        container_name: gopher-social-backend-server
+        ports:
+            - "8080:8080"
+        volumes:
+            - .:/app:z
+        env_file:
+            - ./.envs/.server.env
+        networks:
+            - go-backend-engineering-project-network
+
+networks:
+    go-backend-engineering-project-network:
+        driver: bridge

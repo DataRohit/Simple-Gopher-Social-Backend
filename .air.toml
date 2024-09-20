@@ -1,0 +1,97 @@
+# Root directory for the project
+root = "."
+
+# Directory containing test data
+testdata_dir = "testdata"
+
+# Directory for storing temporary build artifacts
+tmp_dir = "bin"
+
+[build]
+    # Arguments to pass to the build command
+    args_bin = []
+    
+    # Path to the output binary
+    bin = "./bin/main.exe"
+    
+    # Command to build the project
+    cmd = "go build -o ./bin/main.exe ./cmd/server"
+    
+    # Delay (in milliseconds) before restarting the build process
+    delay = 1000
+    
+    # Directories to exclude from watching for changes
+    exclude_dir = ["assets", "bin", "vendor", "testdata", "web", "docs", "scripts"]
+    
+    # Files to exclude from watching for changes
+    exclude_file = []
+    
+    # Regular expressions to match file names for exclusion
+    exclude_regex = ["_test.go"]
+    
+    # Whether to exclude files that haven't changed
+    exclude_unchanged = false
+    
+    # Whether to follow symbolic links
+    follow_symlink = false
+    
+    # Path to the full binary (optional, for more complex setups)
+    full_bin = ""
+    
+    # Directories to include for watching
+    include_dir = []
+    
+    # File extensions to include for watching
+    include_ext = ["go", "tpl", "tmpl", "html"]
+    
+    # Files to include for watching
+    include_file = []
+    
+    # Delay (in seconds) before sending an interrupt signal
+    kill_delay = "0s"
+    
+    # Log file for recording build errors
+    log = "build-errors.log"
+    
+    # Whether to use polling instead of file system events
+    poll = false
+    
+    # Interval (in seconds) for polling (used if poll is true)
+    poll_interval = 0
+    
+    # Commands to run after the build process completes
+    post_cmd = []
+    
+    # Whether to re-run the build process when files change
+    rerun = false
+    
+    # Delay (in milliseconds) before re-running the build process
+    rerun_delay = 500
+    
+    # Whether to send an interrupt signal on build errors
+    send_interrupt = false
+    
+    # Whether to stop the build process on errors
+    stop_on_error = false
+
+[color]
+    # Colors for different types of output in the console
+    app = ""         # Color for application output (default)
+    build = "yellow" # Color for build output
+    main = "magenta" # Color for main output
+    runner = "green" # Color for runner output
+    watcher = "cyan" # Color for watcher output
+
+[log]
+    # Logging options
+    main_only = false # Whether to log only main output
+    time = false      # Whether to include timestamps in logs
+
+[misc]
+    # Miscellaneous settings
+    clean_on_exit = false # Whether to clean up temporary files on exit
+
+[screen]
+    # Screen-related settings
+    clear_on_rebuild = false # Whether to clear the screen before rebuilding
+    keep_scroll = true      # Whether to keep the scroll position when rebuilding
