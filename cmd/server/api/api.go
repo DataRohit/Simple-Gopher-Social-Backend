@@ -23,6 +23,14 @@ func (app *Application) configureRouter() *chi.Mux {
 	router.Use(middlewares.RequestIDMiddleware)
 	router.Use(middlewares.RealIPMiddleware)
 	router.Use(middlewares.RecovererMiddleware)
+	router.Use(middlewares.CORSMiddleware(
+		[]string{},
+		[]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		[]string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+		[]string{"Link"},
+		false,
+		300,
+	))
 
 	return router
 }
