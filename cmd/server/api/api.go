@@ -4,6 +4,7 @@ import (
 	"context"
 	"gopher-social-backend-server/internal/middlewares"
 	"gopher-social-backend-server/pkg/logger"
+	"gopher-social-backend-server/pkg/ratelimiter"
 	"net/http"
 	"os"
 	"os/signal"
@@ -31,6 +32,9 @@ func (app *Application) configureRouter() *chi.Mux {
 		false,
 		300,
 	))
+
+	rateLimiter := ratelimiter.NewRateLimiter(time.Second)
+	router.Use(middlewares.RateLimiterMiddleware(rateLimiter))
 
 	return router
 }
