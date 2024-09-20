@@ -151,3 +151,80 @@ func (h *AuthenticationHandler) LogoutUserHandler(w http.ResponseWriter, r *http
 		return
 	}
 }
+
+func (h *AuthenticationHandler) ForgotPasswordHandler(w http.ResponseWriter, r *http.Request) {
+	var payload userForgotPasswordPayload
+	if err := utils.ParseJSON(r, &payload); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := validate.Struct(payload); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	user, err := h.AuthenticationStore.GetUserByEmail(payload.Email)
+	if err != nil {
+		utils.WriteError(w, http.StatusNotFound, "user not found")
+		return
+	}
+
+	token := utils.GeneratePasswordResetToken(user.Email)
+	mailer.SendPasswordResetEmail(user.Email, token)
+
+	if err := utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "password reset email sent"}); err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+}
+
+func (h *AuthenticationHandler) ResetPasswordHandler(w http.ResponseWriter, r *http.Request) {
+	token := chi.URLParam(r, "token")
+	if token == "" {
+		utils.WriteError(w, http.StatusBadRequest, "token is required")
+		return
+	}
+
+	email, err := utils.VerifyPasswordResetToken(token)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	var payload userPasswordResetPayload
+	if err := utils.ParseJSON(r, &payload); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := validate.Struct(payload); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	user, err := h.AuthenticationStore.GetUserByEmail(email)
+	if err != nil {
+		utils.WriteError(w, http.StatusNotFound, "user not found")
+		return
+	}
+
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(payload.Password), BCRYPT_COST)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	user.Password = string(hashedPassword)
+	if err := h.AuthenticationStore.UpdateUser(user); err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	mailer.SendPasswordChangedEmail(user.Email)
+
+	if err := utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "password changed"}); err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+}

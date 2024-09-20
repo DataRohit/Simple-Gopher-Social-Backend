@@ -26,6 +26,8 @@ func (app *Application) mountRoutes(router chi.Router) {
 	router.Get("/auth/activate/{token}", app.Handlers.AuthenticationHandler.ActivateUserHandler)
 	router.Post("/auth/login", app.Handlers.AuthenticationHandler.LoginUserHandler)
 	router.Post("/auth/logout", app.Handlers.AuthenticationHandler.LogoutUserHandler)
+	router.Post("/auth/forgot-password", app.Handlers.AuthenticationHandler.ForgotPasswordHandler)
+	router.Post("/auth/reset-password/{token}", app.Handlers.AuthenticationHandler.ResetPasswordHandler)
 }
 
 func (app *Application) prepareDatabase() {

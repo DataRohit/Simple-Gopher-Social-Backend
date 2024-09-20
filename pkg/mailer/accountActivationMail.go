@@ -12,9 +12,10 @@ import (
 
 var ACTIVATION_MAIL_EXPIRATION = utils.GetEnvAsDuration("ACTIVATION_MAIL_EXPIRATION", "30m")
 
-var activationEmailTemplate = template.Must(template.ParseFiles("templates/authentication/activation_email.tmpl"))
+var activationEmailTemplate = template.Must(template.ParseFiles("templates/authentication/account_activation_email.tmpl"))
 
 type ActivationEmailData struct {
+	Email      string
 	Token      string
 	Expiration string
 }
@@ -23,6 +24,7 @@ func SendActivationEmail(email, token string) {
 	expiration := time.Now().Add(ACTIVATION_MAIL_EXPIRATION).Format(time.RFC1123)
 
 	data := ActivationEmailData{
+		Email:      email,
 		Token:      token,
 		Expiration: expiration,
 	}
