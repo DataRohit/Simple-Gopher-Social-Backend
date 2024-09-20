@@ -20,6 +20,7 @@ func (app *Application) configureRouter() *chi.Mux {
 	router := chi.NewRouter()
 
 	router.Use(middlewares.LoggingMiddleware)
+	router.Use(middlewares.RequestIDMiddleware)
 
 	return router
 }
