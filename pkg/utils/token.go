@@ -6,6 +6,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+var ACTIVATION_MAIL_EXPIRATION = GetEnvAsDuration("ACTIVATION_MAIL_EXPIRATION", "30m")
 var JWT_SECRET = GetEnvAsByteArr("JWT_SECRET", "b82d4b46c665de2f8d506caf26f889c4d1b4d279a94fb99ef1f2d46992b034e5")
 var JWT_EXPIRATION = GetEnvAsDuration("JWT_EXPIRATION", "6h")
 

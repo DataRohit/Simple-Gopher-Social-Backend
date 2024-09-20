@@ -23,6 +23,7 @@ func (app *Application) mountRoutes(router chi.Router) {
 	router.Get("/health/router", app.Handlers.HealthHandler.GetRouterHealthHandler)
 
 	router.Post("/auth/register", app.Handlers.AuthenticationHandler.RegisterUserHandler)
+	router.Get("/auth/activate/{token}", app.Handlers.AuthenticationHandler.ActivateUserHandler)
 }
 
 func (app *Application) prepareDatabase() {

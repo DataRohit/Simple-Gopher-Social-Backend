@@ -1,9 +1,11 @@
 package authentication
 
 import (
+	"gopher-social-backend-server/pkg/mailer"
 	"gopher-social-backend-server/pkg/utils"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -46,9 +48,47 @@ func (h *AuthenticationHandler) RegisterUserHandler(w http.ResponseWriter, r *ht
 	}
 
 	token := utils.GenerateActivationToken(user.Email)
-	utils.SendActivationEmail(user.Email, token)
+	mailer.SendActivationEmail(user.Email, token)
 
 	if err := utils.WriteJSON(w, http.StatusCreated, user); err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+}
+
+func (h *AuthenticationHandler) ActivateUserHandler(w http.ResponseWriter, r *http.Request) {
+	token := chi.URLParam(r, "token")
+	if token == "" {
+		utils.WriteError(w, http.StatusBadRequest, "token is required")
+		return
+	}
+
+	email, err := utils.VerifyActivationToken(token)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	user, err := h.AuthenticationStore.GetUserByEmail(email)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	if user.IsActivated {
+		utils.WriteError(w, http.StatusBadRequest, "user is already activated")
+		return
+	}
+
+	user.IsActivated = true
+	if err := h.AuthenticationStore.UpdateUser(user); err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	mailer.SendAccountActivatedEmail(user.Email)
+
+	if err := utils.WriteJSON(w, http.StatusOK, user); err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
