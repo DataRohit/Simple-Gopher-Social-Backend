@@ -17,6 +17,10 @@ import (
 
 var log = logger.GetLogger()
 
+func (app *Application) mountRoutes(router chi.Router) {
+	router.Get("/health/router", app.Handlers.HealthHandler.GetRouterHealthHandler)
+}
+
 func (app *Application) configureRouter() *chi.Mux {
 	router := chi.NewRouter()
 
@@ -36,6 +40,8 @@ func (app *Application) configureRouter() *chi.Mux {
 	rateLimiter := ratelimiter.NewRateLimiter(time.Second)
 	router.Use(middlewares.RateLimiterMiddleware(rateLimiter))
 	router.Use(middlewares.TimeoutMiddleware(time.Minute))
+
+	app.mountRoutes(router)
 
 	return router
 }

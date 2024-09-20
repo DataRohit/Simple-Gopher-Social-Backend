@@ -3,8 +3,8 @@ services:
         build:
             context: .
             dockerfile: Dockerfile
-        image: gopher-social-backend-server:master
-        container_name: gopher-social-backend-server
+        image: backend-server:master
+        container_name: backend-server
         ports:
             - "8080:8080"
         volumes:

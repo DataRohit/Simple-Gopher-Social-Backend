@@ -14,7 +14,8 @@ func main() {
 	}
 
 	app := &api.Application{
-		Config: appConfig,
+		Config:   appConfig,
+		Handlers: api.NewHandlers(),
 	}
 
 	app.Run()

@@ -5,5 +5,6 @@ type Config struct {
 }
 
 type Application struct {
-	Config Config
+	Config   Config
+	Handlers *Handlers
 }
