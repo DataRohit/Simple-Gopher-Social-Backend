@@ -63,6 +63,6 @@ func WriteError(w http.ResponseWriter, status int, err string) {
 	errorResponse := map[string]string{"error": err}
 
 	if writeErr := WriteJSON(w, status, errorResponse); writeErr != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		http.Error(w, "internal Server Error", http.StatusInternalServerError)
 	}
 }

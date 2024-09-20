@@ -12,10 +12,15 @@ import (
 )
 
 var (
-	logger          *zap.Logger
 	once            sync.Once
 	LOG_OUTPUT_PATH = os.Getenv("LOG_OUTPUT_PATH")
 )
+
+type Logger struct {
+	zapLogger *zap.Logger
+}
+
+var instance *Logger
 
 func InitializeLogger(logLevel zapcore.Level, outputPaths []string) error {
 	config := zap.NewProductionConfig()
@@ -55,39 +60,40 @@ func InitializeLogger(logLevel zapcore.Level, outputPaths []string) error {
 		cores = append(cores, core)
 	}
 
+	var zapLogger *zap.Logger
 	if len(cores) == 1 {
-		logger = zap.New(cores[0])
+		zapLogger = zap.New(cores[0])
 	} else {
-		logger = zap.New(zapcore.NewTee(cores...))
+		zapLogger = zap.New(zapcore.NewTee(cores...))
 	}
 
+	instance = &Logger{zapLogger: zapLogger}
 	return nil
 }
 
-func GetLogger() *zap.Logger {
+func GetLogger() *Logger {
 	once.Do(func() {
 		if err := InitializeLogger(zapcore.DebugLevel, []string{LOG_OUTPUT_PATH}); err != nil {
 			log.Fatalf("error initializing logger: %v", err)
 		}
-		Info("logger initialized successfully")
+		instance.Info("logger initialized successfully")
 	})
-
-	return logger
+	return instance
 }
 
-func Info(msg string, fields ...zap.Field) {
-	logger.Info(msg, fields...)
+func (l *Logger) Info(msg string, fields ...zap.Field) {
+	l.zapLogger.Info(msg, fields...)
 }
 
-func Error(msg string, fields ...zap.Field) {
-	logger.Error(msg, fields...)
+func (l *Logger) Error(msg string, fields ...zap.Field) {
+	l.zapLogger.Error(msg, fields...)
 	os.Exit(1)
 }
 
-func Warn(msg string, fields ...zap.Field) {
-	logger.Warn(msg, fields...)
+func (l *Logger) Warn(msg string, fields ...zap.Field) {
+	l.zapLogger.Warn(msg, fields...)
 }
 
-func Debug(msg string, fields ...zap.Field) {
-	logger.Debug(msg, fields...)
+func (l *Logger) Debug(msg string, fields ...zap.Field) {
+	l.zapLogger.Debug(msg, fields...)
 }
