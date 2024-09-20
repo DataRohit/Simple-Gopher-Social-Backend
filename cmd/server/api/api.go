@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"gopher-social-backend-server/internal/middlewares"
 	"gopher-social-backend-server/pkg/logger"
 	"net/http"
 	"os"
@@ -17,6 +18,8 @@ var log = logger.GetLogger()
 
 func (app *Application) configureRouter() *chi.Mux {
 	router := chi.NewRouter()
+
+	router.Use(middlewares.LoggingMiddleware)
 
 	return router
 }
