@@ -24,6 +24,7 @@ func (app *Application) mountRoutes(router chi.Router) {
 
 	router.Post("/auth/register", app.Handlers.AuthenticationHandler.RegisterUserHandler)
 	router.Get("/auth/activate/{token}", app.Handlers.AuthenticationHandler.ActivateUserHandler)
+	router.Post("/auth/login", app.Handlers.AuthenticationHandler.LoginUserHandler)
 }
 
 func (app *Application) prepareDatabase() {

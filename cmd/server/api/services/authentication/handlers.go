@@ -93,3 +93,46 @@ func (h *AuthenticationHandler) ActivateUserHandler(w http.ResponseWriter, r *ht
 		return
 	}
 }
+
+func (h *AuthenticationHandler) LoginUserHandler(w http.ResponseWriter, r *http.Request) {
+	var payload userLoginPayload
+	if err := utils.ParseJSON(r, &payload); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := validate.Struct(payload); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	user, err := h.AuthenticationStore.GetUserByEmail(payload.Email)
+	if err != nil {
+		utils.WriteError(w, http.StatusUnauthorized, "invalid email or password")
+		return
+	}
+
+	if !user.IsActivated {
+		utils.WriteError(w, http.StatusUnauthorized, "account is not activated")
+		return
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(payload.Password)); err != nil {
+		utils.WriteError(w, http.StatusUnauthorized, "invalid email or password")
+		return
+	}
+
+	accessToken, expirationTime := utils.GenerateAccessToken(user.Email)
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "AuthToken",
+		Value:    accessToken,
+		Expires:  expirationTime,
+		HttpOnly: true,
+	})
+
+	if err := utils.WriteJSON(w, http.StatusOK, map[string]string{"token": accessToken}); err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+}

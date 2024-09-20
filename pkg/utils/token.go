@@ -33,7 +33,7 @@ func VerifyActivationToken(tokenStr string) (string, error) {
 	return claims.Subject, nil
 }
 
-func GenerateAccessToken(email string) string {
+func GenerateAccessToken(email string) (string, time.Time) {
 	expirationTime := time.Now().Add(JWT_EXPIRATION)
 	claims := &jwt.RegisteredClaims{
 		ExpiresAt: jwt.NewNumericDate(expirationTime),
@@ -42,7 +42,7 @@ func GenerateAccessToken(email string) string {
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, _ := token.SignedString(JWT_SECRET)
-	return tokenString
+	return tokenString, expirationTime
 }
 
 func ValidateAccessToken(tokenStr string) bool {
