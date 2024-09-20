@@ -4,6 +4,7 @@ import (
 	"gopher-social-backend-server/pkg/mailer"
 	"gopher-social-backend-server/pkg/utils"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
@@ -132,6 +133,20 @@ func (h *AuthenticationHandler) LoginUserHandler(w http.ResponseWriter, r *http.
 	})
 
 	if err := utils.WriteJSON(w, http.StatusOK, map[string]string{"token": accessToken}); err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+}
+
+func (h *AuthenticationHandler) LogoutUserHandler(w http.ResponseWriter, r *http.Request) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     "AuthToken",
+		Value:    "",
+		Expires:  time.Unix(0, 0),
+		HttpOnly: true,
+	})
+
+	if err := utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "logged out"}); err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
