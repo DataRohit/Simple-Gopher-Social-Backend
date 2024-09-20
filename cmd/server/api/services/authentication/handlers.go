@@ -3,6 +3,8 @@ package authentication
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"gopher-social-backend-server/pkg/constants"
 	"gopher-social-backend-server/pkg/mailer"
 	"gopher-social-backend-server/pkg/utils"
 	"net/http"
@@ -47,6 +49,7 @@ func (h *AuthenticationHandler) RegisterUserHandler(w http.ResponseWriter, r *ht
 		LastName:  payload.LastName,
 		Email:     payload.Email,
 		Password:  string(hashedPassword),
+		OAuth:     constants.ProviderNone,
 	}
 	if err := h.AuthenticationStore.CreateUser(&user); err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err.Error())
@@ -123,8 +126,8 @@ func (h *AuthenticationHandler) LoginUserHandler(w http.ResponseWriter, r *http.
 		return
 	}
 
-	if user.OAuth {
-		utils.WriteError(w, http.StatusUnauthorized, "oauth user cannot login with email and password")
+	if user.OAuth != constants.ProviderNone {
+		utils.WriteError(w, http.StatusUnauthorized, fmt.Sprintf("login with %s", user.OAuth))
 		return
 	}
 
@@ -277,13 +280,13 @@ func (h *AuthenticationHandler) GoogleCallbackHandler(w http.ResponseWriter, r *
 		LastName:    gUser.FamilyName,
 		Email:       gUser.Email,
 		IsActivated: true,
-		OAuth:       true,
+		OAuth:       constants.ProviderGoogle,
 	}
 
 	existingUser, _ := h.AuthenticationStore.GetUserByEmail(user.Email)
 	if existingUser == nil {
 		h.AuthenticationStore.CreateUser(&user)
-		mailer.SendGoogleWelcomeEmail(user.Email)
+		mailer.SendOAuthWelcomeEmail(user.Email, user.OAuth)
 	}
 
 	accessToken, expirationTime := utils.GenerateAccessToken(user.Email)
@@ -345,13 +348,13 @@ func (h *AuthenticationHandler) GitHubCallbackHandler(w http.ResponseWriter, r *
 		LastName:    lastName,
 		Email:       ghUser.Email,
 		IsActivated: true,
-		OAuth:       true,
+		OAuth:       constants.ProviderGitHub,
 	}
 
 	existingUser, _ := h.AuthenticationStore.GetUserByEmail(user.Email)
 	if existingUser == nil {
 		h.AuthenticationStore.CreateUser(&user)
-		mailer.SendGitHubWelcomeEmail(user.Email)
+		mailer.SendOAuthWelcomeEmail(user.Email, user.OAuth)
 	}
 
 	accessToken, expirationTime := utils.GenerateAccessToken(user.Email)
