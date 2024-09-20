@@ -35,6 +35,7 @@ func (app *Application) configureRouter() *chi.Mux {
 
 	rateLimiter := ratelimiter.NewRateLimiter(time.Second)
 	router.Use(middlewares.RateLimiterMiddleware(rateLimiter))
+	router.Use(middlewares.TimeoutMiddleware(time.Minute))
 
 	return router
 }
