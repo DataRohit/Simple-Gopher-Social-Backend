@@ -1,5 +1,7 @@
 package api
 
+import "gorm.io/gorm"
+
 type Config struct {
 	Address string
 }
@@ -7,4 +9,5 @@ type Config struct {
 type Application struct {
 	Config   Config
 	Handlers *Handlers
+	DB       *gorm.DB
 }

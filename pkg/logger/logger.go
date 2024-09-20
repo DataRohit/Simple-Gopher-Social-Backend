@@ -2,6 +2,7 @@ package logger
 
 import (
 	"fmt"
+	"gopher-social-backend-server/pkg/utils"
 	"log"
 	"os"
 	"path/filepath"
@@ -13,7 +14,7 @@ import (
 
 var (
 	once            sync.Once
-	LOG_OUTPUT_PATH = os.Getenv("LOG_OUTPUT_PATH")
+	LOG_OUTPUT_PATH = utils.GetEnvAsString("LOG_OUTPUT_PATH", "stdout")
 )
 
 type Logger struct {
