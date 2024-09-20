@@ -2,7 +2,7 @@ package api
 
 import (
 	"context"
-	"log"
+	"gopher-social-backend-server/pkg/logger"
 	"net/http"
 	"os"
 	"os/signal"
@@ -10,7 +10,10 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"go.uber.org/zap"
 )
+
+var log = logger.GetLogger()
 
 func (app *Application) configureRouter() *chi.Mux {
 	router := chi.NewRouter()
@@ -30,9 +33,9 @@ func (app *Application) Run() {
 	}
 
 	go func() {
-		log.Printf("server started on %s", app.Config.Address)
+		log.Info("starting server", zap.String("address", app.Config.Address))
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("could not listen on %s: %v\n", app.Config.Address, err)
+			log.Error("could not listen on address", zap.String("address", app.Config.Address), zap.Error(err))
 		}
 	}()
 
@@ -45,8 +48,8 @@ func (app *Application) Run() {
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
-		log.Fatalf("could not gracefully shutdown the server: %v\n", err)
+		log.Error("could not gracefully shutdown the server", zap.Error(err))
 	} else {
-		log.Println("server shutdown gracefully")
+		log.Info("server shutdown gracefully")
 	}
 }
