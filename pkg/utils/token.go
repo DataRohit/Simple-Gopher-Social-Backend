@@ -11,11 +11,11 @@ var PASSWORD_RESET_EXPIRATION = GetEnvAsDuration("PASSWORD_RESET_EXPIRATION", "3
 var JWT_SECRET = GetEnvAsByteArr("JWT_SECRET", "b82d4b46c665de2f8d506caf26f889c4d1b4d279a94fb99ef1f2d46992b034e5")
 var JWT_EXPIRATION = GetEnvAsDuration("JWT_EXPIRATION", "6h")
 
-func GenerateActivationToken(email string) string {
+func GenerateActivationToken(userID string) string {
 	expirationTime := time.Now().Add(ACTIVATION_MAIL_EXPIRATION)
 	claims := &jwt.RegisteredClaims{
 		ExpiresAt: jwt.NewNumericDate(expirationTime),
-		Subject:   email,
+		Subject:   userID,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -34,11 +34,11 @@ func VerifyActivationToken(tokenStr string) (string, error) {
 	return claims.Subject, nil
 }
 
-func GenerateAccessToken(email string) (string, time.Time) {
+func GenerateAccessToken(userID string) (string, time.Time) {
 	expirationTime := time.Now().Add(JWT_EXPIRATION)
 	claims := &jwt.RegisteredClaims{
 		ExpiresAt: jwt.NewNumericDate(expirationTime),
-		Subject:   email,
+		Subject:   userID,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -58,11 +58,11 @@ func ValidateAccessToken(tokenStr string) bool {
 	return claims.ExpiresAt.Time.After(time.Now())
 }
 
-func GeneratePasswordResetToken(email string) string {
+func GeneratePasswordResetToken(userID string) string {
 	expirationTime := time.Now().Add(PASSWORD_RESET_EXPIRATION)
 	claims := &jwt.RegisteredClaims{
 		ExpiresAt: jwt.NewNumericDate(expirationTime),
-		Subject:   email,
+		Subject:   userID,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

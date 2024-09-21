@@ -34,18 +34,18 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		email := claims.Subject
-		if email == "" {
-			utils.WriteError(w, http.StatusUnauthorized, "invalid token claims: email is empty")
+		userID := claims.Subject
+		if userID == "" {
+			utils.WriteError(w, http.StatusUnauthorized, "invalid token claims: userID is empty")
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), constants.EmailKey, email)
+		ctx := context.WithValue(r.Context(), constants.UserIDKey, userID)
 		r = r.WithContext(ctx)
 
-		emailFromContext := r.Context().Value(constants.EmailKey)
-		if emailFromContext == nil || emailFromContext == "" {
-			utils.WriteError(w, http.StatusUnauthorized, "email not found in context")
+		userIDFromContext := r.Context().Value(constants.UserIDKey)
+		if userIDFromContext == nil || userIDFromContext == "" {
+			utils.WriteError(w, http.StatusUnauthorized, "userID not found in context")
 			return
 		}
 

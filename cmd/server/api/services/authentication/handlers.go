@@ -56,7 +56,7 @@ func (h *AuthenticationHandler) RegisterUserHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	token := utils.GenerateActivationToken(user.Email)
+	token := utils.GenerateActivationToken(user.ID.String())
 	mailer.SendActivationEmail(user.Email, token)
 
 	if err := utils.WriteJSON(w, http.StatusCreated, user); err != nil {
@@ -72,13 +72,13 @@ func (h *AuthenticationHandler) ActivateUserHandler(w http.ResponseWriter, r *ht
 		return
 	}
 
-	email, err := utils.VerifyActivationToken(token)
+	userID, err := utils.VerifyActivationToken(token)
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	user, err := h.AuthenticationStore.GetUserByEmail(email)
+	user, err := h.AuthenticationStore.GetUserByID(userID)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -136,7 +136,7 @@ func (h *AuthenticationHandler) LoginUserHandler(w http.ResponseWriter, r *http.
 		return
 	}
 
-	accessToken, expirationTime := utils.GenerateAccessToken(user.Email)
+	accessToken, expirationTime := utils.GenerateAccessToken(user.ID.String())
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "AuthToken",
@@ -184,7 +184,7 @@ func (h *AuthenticationHandler) ForgotPasswordHandler(w http.ResponseWriter, r *
 		return
 	}
 
-	token := utils.GeneratePasswordResetToken(user.Email)
+	token := utils.GeneratePasswordResetToken(user.ID.String())
 	mailer.SendPasswordResetEmail(user.Email, token)
 
 	if err := utils.WriteJSON(w, http.StatusOK, map[string]string{"message": "password reset email sent"}); err != nil {
@@ -200,7 +200,7 @@ func (h *AuthenticationHandler) ResetPasswordHandler(w http.ResponseWriter, r *h
 		return
 	}
 
-	email, err := utils.VerifyPasswordResetToken(token)
+	userID, err := utils.VerifyPasswordResetToken(token)
 	if err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err.Error())
 		return
@@ -217,7 +217,7 @@ func (h *AuthenticationHandler) ResetPasswordHandler(w http.ResponseWriter, r *h
 		return
 	}
 
-	user, err := h.AuthenticationStore.GetUserByEmail(email)
+	user, err := h.AuthenticationStore.GetUserByID(userID)
 	if err != nil {
 		utils.WriteError(w, http.StatusNotFound, "user not found")
 		return
@@ -290,7 +290,7 @@ func (h *AuthenticationHandler) GoogleCallbackHandler(w http.ResponseWriter, r *
 		mailer.SendOAuthWelcomeEmail(user.Email, user.OAuth)
 	}
 
-	accessToken, expirationTime := utils.GenerateAccessToken(user.Email)
+	accessToken, expirationTime := utils.GenerateAccessToken(user.ID.String())
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "AuthToken",
@@ -359,7 +359,7 @@ func (h *AuthenticationHandler) GitHubCallbackHandler(w http.ResponseWriter, r *
 		mailer.SendOAuthWelcomeEmail(user.Email, user.OAuth)
 	}
 
-	accessToken, expirationTime := utils.GenerateAccessToken(user.Email)
+	accessToken, expirationTime := utils.GenerateAccessToken(user.ID.String())
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     "AuthToken",

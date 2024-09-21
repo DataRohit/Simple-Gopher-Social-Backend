@@ -8,4 +8,5 @@ import (
 
 func RegisterPostsRoutes(router chi.Router, handler *PostsHandler) {
 	router.With(middlewares.AuthMiddleware).Post("/posts", handler.CreatePostHandler)
+	router.With(middlewares.AuthMiddleware).Patch("/posts/{postID}", handler.UpdatePostByIDHandler)
 }

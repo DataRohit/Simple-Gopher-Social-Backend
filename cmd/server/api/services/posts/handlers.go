@@ -6,7 +6,9 @@ import (
 	"gopher-social-backend-server/pkg/utils"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 )
 
 type PostsHandler struct {
@@ -17,7 +19,7 @@ type PostsHandler struct {
 var validate = validator.New()
 
 func (h *PostsHandler) CreatePostHandler(w http.ResponseWriter, r *http.Request) {
-	var payload postCreatePayload
+	var payload postCreateUpdatePayload
 	if err := utils.ParseJSON(r, &payload); err != nil {
 		utils.WriteError(w, http.StatusBadRequest, err.Error())
 		return
@@ -28,13 +30,13 @@ func (h *PostsHandler) CreatePostHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	userEmail, ok := r.Context().Value(constants.EmailKey).(string)
+	userID, ok := r.Context().Value(constants.UserIDKey).(string)
 	if !ok {
 		utils.WriteError(w, http.StatusUnauthorized, "email not found in context")
 		return
 	}
 
-	user, err := h.AuthenticationStore.GetUserByEmail(userEmail)
+	user, err := h.AuthenticationStore.GetUserByID(userID)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -52,9 +54,9 @@ func (h *PostsHandler) CreatePostHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	postResponse := postCreateResponse{
+	postResponse := postCreateUpdateResponse{
 		ID: post.ID,
-		Author: postCreateResponseAuthor{
+		Author: postCreateUpdateResponseAuthor{
 			ID:        post.Author.ID,
 			FirstName: post.Author.FirstName,
 			LastName:  post.Author.LastName,
@@ -67,4 +69,72 @@ func (h *PostsHandler) CreatePostHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	utils.WriteJSON(w, http.StatusCreated, postResponse)
+}
+
+func (h *PostsHandler) UpdatePostByIDHandler(w http.ResponseWriter, r *http.Request) {
+	postID, err := uuid.Parse(chi.URLParam(r, "postID"))
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	existingPost, err := h.PostsStore.GetPostByID(postID)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	existingPostAuthor, err := h.AuthenticationStore.GetUserByID(existingPost.AuthorID.String())
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	existingPost.Author = *existingPostAuthor
+
+	authUserID, ok := r.Context().Value(constants.UserIDKey).(string)
+	if !ok {
+		utils.WriteError(w, http.StatusUnauthorized, "email not found in context")
+		return
+	}
+
+	if err := utils.VerifyOwnership(existingPostAuthor.ID.String(), authUserID); err != nil {
+		utils.WriteError(w, http.StatusForbidden, err.Error())
+		return
+	}
+
+	var payload postCreateUpdatePayload
+	if err := utils.ParseJSON(r, &payload); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if err := validate.Struct(payload); err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	existingPost.Title = payload.Title
+	existingPost.Content = payload.Content
+
+	if err := h.PostsStore.UpdatePost(existingPost); err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, "failed to update post")
+		return
+	}
+
+	postResponse := postCreateUpdateResponse{
+		ID: existingPost.ID,
+		Author: postCreateUpdateResponseAuthor{
+			ID:        existingPost.Author.ID,
+			FirstName: existingPost.Author.FirstName,
+			LastName:  existingPost.Author.LastName,
+			Email:     existingPost.Author.Email,
+		},
+		Title:     existingPost.Title,
+		Content:   existingPost.Content,
+		CreatedAt: existingPost.CreatedAt,
+		UpdatedAt: existingPost.UpdatedAt,
+	}
+
+	utils.WriteJSON(w, http.StatusOK, postResponse)
 }
