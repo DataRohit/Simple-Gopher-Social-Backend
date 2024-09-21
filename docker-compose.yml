@@ -37,6 +37,16 @@ services:
             start_period: 10s
             timeout: 10s
 
+    pgadmin:
+        image: dpage/pgadmin4
+        container_name: pgadmin
+        ports:
+            - "5050:80"
+        env_file:
+            - ./.envs/.pgadmin.env
+        networks:
+            - gopher-social-backend-network
+
     mailpit:
         image: axllent/mailpit:latest
         container_name: mailpit
