@@ -4,6 +4,7 @@ import (
 	"context"
 	"gopher-social-backend-server/cmd/server/api/services/authentication"
 	"gopher-social-backend-server/cmd/server/api/services/health"
+	"gopher-social-backend-server/cmd/server/api/services/posts"
 	"gopher-social-backend-server/internal/database"
 	"gopher-social-backend-server/internal/middlewares"
 	"gopher-social-backend-server/pkg/logger"
@@ -23,6 +24,10 @@ var log = logger.GetLogger()
 func (app *Application) mountRoutes(router chi.Router) {
 	health.RegisterHealthRoutes(router, app.Handlers.HealthHandler)
 	authentication.RegisterAuthenticationRoutes(router, app.Handlers.AuthenticationHandler)
+
+	router.Route("/api/v1", func(r chi.Router) {
+		posts.RegisterPostsRoutes(r, app.Handlers.PostsHandler)
+	})
 }
 
 func (app *Application) prepareDatabase() {
@@ -45,6 +50,10 @@ func (app *Application) makeMigrations() {
 
 	if err := database.MigrateModel(&authentication.User{}); err != nil {
 		log.Error("could not migrate model", zap.String("model", "User"), zap.Error(err))
+	}
+
+	if err := database.MigrateModel(&posts.Post{}); err != nil {
+		log.Error("could not migrate model", zap.String("model", "Post"), zap.Error(err))
 	}
 }
 

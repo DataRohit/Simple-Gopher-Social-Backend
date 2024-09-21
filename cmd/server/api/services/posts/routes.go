@@ -1,0 +1,11 @@
+package posts
+
+import (
+	"gopher-social-backend-server/internal/middlewares"
+
+	"github.com/go-chi/chi/v5"
+)
+
+func RegisterPostsRoutes(router chi.Router, handler *PostsHandler) {
+	router.With(middlewares.AuthMiddleware).Post("/posts", handler.CreatePostHandler)
+}

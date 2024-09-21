@@ -51,7 +51,11 @@ func ValidateAccessToken(tokenStr string) bool {
 	token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
 		return JWT_SECRET, nil
 	})
-	return err == nil && token.Valid
+	if err != nil || !token.Valid {
+		return false
+	}
+
+	return claims.ExpiresAt.Time.After(time.Now())
 }
 
 func GeneratePasswordResetToken(email string) string {
@@ -75,4 +79,15 @@ func VerifyPasswordResetToken(tokenStr string) (string, error) {
 		return "", err
 	}
 	return claims.Subject, nil
+}
+
+func ParseAccessToken(tokenStr string) (*jwt.RegisteredClaims, error) {
+	claims := &jwt.RegisteredClaims{}
+	token, err := jwt.ParseWithClaims(tokenStr, claims, func(token *jwt.Token) (interface{}, error) {
+		return JWT_SECRET, nil
+	})
+	if err != nil || !token.Valid {
+		return nil, err
+	}
+	return claims, nil
 }
