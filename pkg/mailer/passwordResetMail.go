@@ -12,7 +12,7 @@ import (
 
 var PASSWORD_RESET_EXPIRATION = utils.GetEnvAsDuration("PASSWORD_RESET_EXPIRATION", "30m")
 
-var password_reset_email_template = template.Must(template.ParseFiles("templates/authentication/password_reset_email.tmpl"))
+var password_reset_email_template = template.Must(template.ParseFiles("templates/authentication/password_reset_email.gtpl"))
 
 type PasswordResetEmailData struct {
 	Email      string

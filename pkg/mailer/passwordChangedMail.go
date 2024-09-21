@@ -8,7 +8,7 @@ import (
 	"gopkg.in/gomail.v2"
 )
 
-var password_changed_email_template = template.Must(template.ParseFiles("templates/authentication/password_changed_email.tmpl"))
+var password_changed_email_template = template.Must(template.ParseFiles("templates/authentication/password_changed_email.gtpl"))
 
 type PasswordChangedEmailData struct {
 	Email string

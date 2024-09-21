@@ -8,7 +8,7 @@ import (
 	"gopkg.in/gomail.v2"
 )
 
-var accountActivatedEmailTemplate = template.Must(template.ParseFiles("templates/authentication/account_activated_email.tmpl"))
+var accountActivatedEmailTemplate = template.Must(template.ParseFiles("templates/authentication/account_activated_email.gtpl"))
 
 type AccountActivatedEmailData struct {
 	Email string

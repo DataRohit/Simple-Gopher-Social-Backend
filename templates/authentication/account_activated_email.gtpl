@@ -1,3 +1,5 @@
+{{- /* gotype: gopher-social-backend-server/pkg/mailer/accountActivatedMail.AccountActiatedEmailData */ -}}
+
 <!DOCTYPE html>
 <html>
 <head>

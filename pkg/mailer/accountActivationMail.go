@@ -12,7 +12,7 @@ import (
 
 var ACTIVATION_MAIL_EXPIRATION = utils.GetEnvAsDuration("ACTIVATION_MAIL_EXPIRATION", "30m")
 
-var activationEmailTemplate = template.Must(template.ParseFiles("templates/authentication/account_activation_email.tmpl"))
+var activationEmailTemplate = template.Must(template.ParseFiles("templates/authentication/account_activation_email.gtpl"))
 
 type ActivationEmailData struct {
 	Email      string

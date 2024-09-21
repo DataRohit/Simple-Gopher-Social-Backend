@@ -1,3 +1,5 @@
+{{- /* gotype: gopher-social-backend-server/pkg/mailer/passwordResetMail.PasswordResetEmailData */ -}}
+
 <!DOCTYPE html>
 <html>
 <head>

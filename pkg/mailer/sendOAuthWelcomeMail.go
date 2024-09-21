@@ -9,7 +9,7 @@ import (
 	"gopkg.in/gomail.v2"
 )
 
-var oauth_welcome_email_template = template.Must(template.ParseFiles("templates/authentication/oauth_welcome_email.tmpl"))
+var oauth_welcome_email_template = template.Must(template.ParseFiles("templates/authentication/oauth_welcome_email.gtpl"))
 
 type OAuthWelcomeEmailData struct {
 	Email    string

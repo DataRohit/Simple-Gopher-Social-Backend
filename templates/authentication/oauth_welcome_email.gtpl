@@ -1,3 +1,5 @@
+{{- /* gotype: gopher-social-backend-server/pkg/mailer/sendOAuthWelcomeMail.OAuthWelcomeEmailData */ -}}
+
 <!DOCTYPE html>
 <html>
 <head>
