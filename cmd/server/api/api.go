@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"gopher-social-backend-server/cmd/server/api/services/authentication"
+	"gopher-social-backend-server/cmd/server/api/services/health"
 	"gopher-social-backend-server/internal/database"
 	"gopher-social-backend-server/internal/middlewares"
 	"gopher-social-backend-server/pkg/logger"
@@ -20,18 +21,8 @@ import (
 var log = logger.GetLogger()
 
 func (app *Application) mountRoutes(router chi.Router) {
-	router.Get("/health/router", app.Handlers.HealthHandler.GetRouterHealthHandler)
-
-	router.Post("/auth/register", app.Handlers.AuthenticationHandler.RegisterUserHandler)
-	router.Get("/auth/activate/{token}", app.Handlers.AuthenticationHandler.ActivateUserHandler)
-	router.Post("/auth/login", app.Handlers.AuthenticationHandler.LoginUserHandler)
-	router.Post("/auth/logout", app.Handlers.AuthenticationHandler.LogoutUserHandler)
-	router.Post("/auth/forgot-password", app.Handlers.AuthenticationHandler.ForgotPasswordHandler)
-	router.Post("/auth/reset-password/{token}", app.Handlers.AuthenticationHandler.ResetPasswordHandler)
-	router.Get("/auth/google/login", app.Handlers.AuthenticationHandler.GoogleLoginHandler)
-	router.Get("/auth/google/callback", app.Handlers.AuthenticationHandler.GoogleCallbackHandler)
-	router.Get("/auth/github/login", app.Handlers.AuthenticationHandler.GitHubLoginHandler)
-	router.Get("/auth/github/callback", app.Handlers.AuthenticationHandler.GitHubCallbackHandler)
+	health.RegisterHealthRoutes(router, app.Handlers.HealthHandler)
+	authentication.RegisterAuthenticationRoutes(router, app.Handlers.AuthenticationHandler)
 }
 
 func (app *Application) prepareDatabase() {
