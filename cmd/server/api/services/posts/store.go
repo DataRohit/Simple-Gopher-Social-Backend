@@ -8,7 +8,7 @@ import (
 type PostsStore interface {
 	CreatePost(post *Post) error
 	GetPostByID(postID uuid.UUID) (*Post, error)
-	GetPosts() ([]Post, error)
+	GetPosts(limit, offset int, orderby string, desc bool) ([]Post, error)
 	UpdatePost(post *Post) error
 	DeletePost(postID uuid.UUID) error
 }
@@ -35,11 +35,20 @@ func (s *postsStore) GetPostByID(postID uuid.UUID) (*Post, error) {
 	return &post, nil
 }
 
-func (s *postsStore) GetPosts() ([]Post, error) {
+func (s *postsStore) GetPosts(limit, offset int, orderby string, desc bool) ([]Post, error) {
 	var posts []Post
-	if err := s.postgresDB.Find(&posts).Error; err != nil {
+
+	order := orderby
+	if desc {
+		order += " DESC"
+	} else {
+		order += " ASC"
+	}
+
+	if err := s.postgresDB.Limit(limit).Offset(offset).Order(order).Find(&posts).Error; err != nil {
 		return nil, err
 	}
+
 	return posts, nil
 }
 

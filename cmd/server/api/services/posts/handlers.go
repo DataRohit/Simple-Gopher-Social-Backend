@@ -57,7 +57,12 @@ func (h *PostsHandler) GetPostByIDHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (h *PostsHandler) GetPostsHandler(w http.ResponseWriter, r *http.Request) {
-	posts, err := h.PostsStore.GetPosts()
+	limit := r.Context().Value(constants.LimitKey).(int)
+	offset := r.Context().Value(constants.OffsetKey).(int)
+	orderby := r.Context().Value(constants.OrderByKey).(string)
+	desc := r.Context().Value(constants.DescKey).(string) == "true"
+
+	posts, err := h.PostsStore.GetPosts(limit, offset, orderby, desc)
 	if err != nil {
 		utils.WriteError(w, http.StatusInternalServerError, err.Error())
 		return
