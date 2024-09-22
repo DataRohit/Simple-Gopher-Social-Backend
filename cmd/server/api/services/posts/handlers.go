@@ -18,6 +18,44 @@ type PostsHandler struct {
 
 var validate = validator.New()
 
+func (h *PostsHandler) GetPostByIDHandler(w http.ResponseWriter, r *http.Request) {
+	postID, err := uuid.Parse(chi.URLParam(r, "postID"))
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	post, err := h.PostsStore.GetPostByID(postID)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	postAuthor, err := h.AuthenticationStore.GetUserByID(post.AuthorID.String())
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	post.Author = *postAuthor
+
+	postResponse := postCreateUpdateResponse{
+		ID: post.ID,
+		Author: postCreateUpdateResponseAuthor{
+			ID:        post.Author.ID,
+			FirstName: post.Author.FirstName,
+			LastName:  post.Author.LastName,
+			Email:     post.Author.Email,
+		},
+		Title:     post.Title,
+		Content:   post.Content,
+		CreatedAt: post.CreatedAt,
+		UpdatedAt: post.UpdatedAt,
+	}
+
+	utils.WriteJSON(w, http.StatusCreated, postResponse)
+}
+
 func (h *PostsHandler) CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 	var payload postCreateUpdatePayload
 	if err := utils.ParseJSON(r, &payload); err != nil {
