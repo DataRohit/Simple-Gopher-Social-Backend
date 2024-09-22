@@ -12,4 +12,9 @@ func RegisterPostsRoutes(router chi.Router, handler *PostsHandler) {
 	router.With(middlewares.AuthMiddleware).Post("/posts", handler.CreatePostHandler)
 	router.With(middlewares.AuthMiddleware).Patch("/posts/{postID}", handler.UpdatePostByIDHandler)
 	router.With(middlewares.AuthMiddleware).Delete("/posts/{postID}", handler.DeletePostByIDHandler)
+	router.With(middlewares.AuthMiddleware).Post("/posts/{postID}/like", handler.LikePostHandler)
+	router.With(middlewares.AuthMiddleware).Delete("/posts/{postID}/like", handler.UnlikePostHandler)
+	router.With(middlewares.AuthMiddleware).Post("/posts/{postID}/dislike", handler.DislikePostHandler)
+	router.With(middlewares.AuthMiddleware).Delete("/posts/{postID}/dislike", handler.UndislikePostHandler)
+
 }

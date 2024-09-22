@@ -19,6 +19,8 @@ type postCreateUpdateResponse struct {
 	Author    postCreateUpdateResponseAuthor `json:"author"`
 	Title     string                         `json:"title"`
 	Content   string                         `json:"content"`
+	Likes     int64                          `json:"likes"`
+	Dislikes  int64                          `json:"dislikes"`
 	CreatedAt int64                          `json:"created_at"`
 	UpdatedAt int64                          `json:"updated_at"`
 }

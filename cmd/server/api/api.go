@@ -55,6 +55,14 @@ func (app *Application) makeMigrations() {
 	if err := database.MigrateModel(&posts.Post{}); err != nil {
 		log.Error("could not migrate model", zap.String("model", "Post"), zap.Error(err))
 	}
+
+	if err := database.MigrateModel(&posts.PostLike{}); err != nil {
+		log.Error("could not migrate model", zap.String("model", "PostLike"), zap.Error(err))
+	}
+
+	if err := database.MigrateModel(&posts.PostDislike{}); err != nil {
+		log.Error("could not migrate model", zap.String("model", "PostDislike"), zap.Error(err))
+	}
 }
 
 func (app *Application) configureRouter() *chi.Mux {

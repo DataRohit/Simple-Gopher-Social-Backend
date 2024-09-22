@@ -1,6 +1,7 @@
 package posts
 
 import (
+	"errors"
 	"gopher-social-backend-server/cmd/server/api/services/authentication"
 	"gopher-social-backend-server/pkg/constants"
 	"gopher-social-backend-server/pkg/utils"
@@ -18,28 +19,22 @@ type PostsHandler struct {
 
 var validate = validator.New()
 
-func (h *PostsHandler) GetPostByIDHandler(w http.ResponseWriter, r *http.Request) {
-	postID, err := uuid.Parse(chi.URLParam(r, "postID"))
-	if err != nil {
-		utils.WriteError(w, http.StatusBadRequest, err.Error())
-		return
-	}
-
+func (h *PostsHandler) fetchPostDetails(postID uuid.UUID) (*postCreateUpdateResponse, error) {
 	post, err := h.PostsStore.GetPostByID(postID)
 	if err != nil {
-		utils.WriteError(w, http.StatusInternalServerError, err.Error())
-		return
+		return nil, err
 	}
 
 	postAuthor, err := h.AuthenticationStore.GetUserByID(post.AuthorID.String())
 	if err != nil {
-		utils.WriteError(w, http.StatusInternalServerError, err.Error())
-		return
+		return nil, err
 	}
 
 	post.Author = *postAuthor
+	likes, _ := h.PostsStore.GetLikesCount(postID)
+	dislikes, _ := h.PostsStore.GetDislikesCount(postID)
 
-	postResponse := postCreateUpdateResponse{
+	return &postCreateUpdateResponse{
 		ID: post.ID,
 		Author: postCreateUpdateResponseAuthor{
 			ID:        post.Author.ID,
@@ -49,11 +44,82 @@ func (h *PostsHandler) GetPostByIDHandler(w http.ResponseWriter, r *http.Request
 		},
 		Title:     post.Title,
 		Content:   post.Content,
+		Likes:     likes,
+		Dislikes:  dislikes,
 		CreatedAt: post.CreatedAt,
 		UpdatedAt: post.UpdatedAt,
+	}, nil
+}
+
+func (h *PostsHandler) verifyOwnership(postID uuid.UUID, authUserID string) (*Post, error) {
+	post, err := h.PostsStore.GetPostByID(postID)
+	if err != nil {
+		return nil, err
 	}
 
-	utils.WriteJSON(w, http.StatusCreated, postResponse)
+	postAuthor, err := h.AuthenticationStore.GetUserByID(post.AuthorID.String())
+	if err != nil {
+		return nil, err
+	}
+
+	post.Author = *postAuthor
+
+	if err := utils.VerifyOwnership(postAuthor.ID.String(), authUserID); err != nil {
+		return nil, err
+	}
+
+	return post, nil
+}
+
+func (h *PostsHandler) handleLikeDislike(userUUID, postID uuid.UUID, action string) error {
+	switch action {
+	case "like":
+		if liked, _ := h.PostsStore.HasLiked(userUUID, postID); liked {
+			return errors.New("you have already liked this post")
+		}
+		if disliked, _ := h.PostsStore.HasDisliked(userUUID, postID); disliked {
+			h.PostsStore.RemoveDislike(userUUID, postID)
+		}
+		return h.PostsStore.LikePost(userUUID, postID)
+
+	case "unlike":
+		if liked, _ := h.PostsStore.HasLiked(userUUID, postID); !liked {
+			return errors.New("you haven't liked this post")
+		}
+		return h.PostsStore.RemoveLike(userUUID, postID)
+
+	case "dislike":
+		if disliked, _ := h.PostsStore.HasDisliked(userUUID, postID); disliked {
+			return errors.New("you have already disliked this post")
+		}
+		if liked, _ := h.PostsStore.HasLiked(userUUID, postID); liked {
+			h.PostsStore.RemoveLike(userUUID, postID)
+		}
+		return h.PostsStore.DislikePost(userUUID, postID)
+
+	case "undislike":
+		if disliked, _ := h.PostsStore.HasDisliked(userUUID, postID); !disliked {
+			return errors.New("you haven't disliked this post")
+		}
+		return h.PostsStore.RemoveDislike(userUUID, postID)
+	}
+	return nil
+}
+
+func (h *PostsHandler) GetPostByIDHandler(w http.ResponseWriter, r *http.Request) {
+	postID, err := uuid.Parse(chi.URLParam(r, "postID"))
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	postResponse, err := h.fetchPostDetails(postID)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusOK, postResponse)
 }
 
 func (h *PostsHandler) GetPostsHandler(w http.ResponseWriter, r *http.Request) {
@@ -70,30 +136,12 @@ func (h *PostsHandler) GetPostsHandler(w http.ResponseWriter, r *http.Request) {
 
 	var postResponses []postCreateUpdateResponse
 	for _, post := range posts {
-		postAuthor, err := h.AuthenticationStore.GetUserByID(post.AuthorID.String())
+		response, err := h.fetchPostDetails(post.ID)
 		if err != nil {
 			utils.WriteError(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-
-		post.Author = *postAuthor
-
-		postResponse := postCreateUpdateResponse{
-			ID: post.ID,
-			Author: postCreateUpdateResponseAuthor{
-				ID:        post.Author.ID,
-				FirstName: post.Author.FirstName,
-				LastName:  post.Author.LastName,
-				Email:     post.Author.Email,
-			},
-			Title:     post.Title,
-			Content:   post.Content,
-			CreatedAt: post.CreatedAt,
-			UpdatedAt: post.UpdatedAt,
-		}
-
-		postResponses = append(postResponses, postResponse)
-
+		postResponses = append(postResponses, *response)
 	}
 
 	utils.WriteJSON(w, http.StatusOK, postResponses)
@@ -113,7 +161,7 @@ func (h *PostsHandler) CreatePostHandler(w http.ResponseWriter, r *http.Request)
 
 	userID, ok := r.Context().Value(constants.UserIDKey).(string)
 	if !ok {
-		utils.WriteError(w, http.StatusUnauthorized, "email not found in context")
+		utils.WriteError(w, http.StatusUnauthorized, "user ID not found in context")
 		return
 	}
 
@@ -135,20 +183,7 @@ func (h *PostsHandler) CreatePostHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	postResponse := postCreateUpdateResponse{
-		ID: post.ID,
-		Author: postCreateUpdateResponseAuthor{
-			ID:        post.Author.ID,
-			FirstName: post.Author.FirstName,
-			LastName:  post.Author.LastName,
-			Email:     post.Author.Email,
-		},
-		Title:     post.Title,
-		Content:   post.Content,
-		CreatedAt: post.CreatedAt,
-		UpdatedAt: post.UpdatedAt,
-	}
-
+	postResponse, _ := h.fetchPostDetails(post.ID)
 	utils.WriteJSON(w, http.StatusCreated, postResponse)
 }
 
@@ -159,27 +194,14 @@ func (h *PostsHandler) UpdatePostByIDHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	existingPost, err := h.PostsStore.GetPostByID(postID)
-	if err != nil {
-		utils.WriteError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	existingPostAuthor, err := h.AuthenticationStore.GetUserByID(existingPost.AuthorID.String())
-	if err != nil {
-		utils.WriteError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	existingPost.Author = *existingPostAuthor
-
 	authUserID, ok := r.Context().Value(constants.UserIDKey).(string)
 	if !ok {
-		utils.WriteError(w, http.StatusUnauthorized, "email not found in context")
+		utils.WriteError(w, http.StatusUnauthorized, "user ID not found in context")
 		return
 	}
 
-	if err := utils.VerifyOwnership(existingPostAuthor.ID.String(), authUserID); err != nil {
+	existingPost, err := h.verifyOwnership(postID, authUserID)
+	if err != nil {
 		utils.WriteError(w, http.StatusForbidden, err.Error())
 		return
 	}
@@ -203,20 +225,7 @@ func (h *PostsHandler) UpdatePostByIDHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	postResponse := postCreateUpdateResponse{
-		ID: existingPost.ID,
-		Author: postCreateUpdateResponseAuthor{
-			ID:        existingPost.Author.ID,
-			FirstName: existingPost.Author.FirstName,
-			LastName:  existingPost.Author.LastName,
-			Email:     existingPost.Author.Email,
-		},
-		Title:     existingPost.Title,
-		Content:   existingPost.Content,
-		CreatedAt: existingPost.CreatedAt,
-		UpdatedAt: existingPost.UpdatedAt,
-	}
-
+	postResponse, _ := h.fetchPostDetails(existingPost.ID)
 	utils.WriteJSON(w, http.StatusOK, postResponse)
 }
 
@@ -227,27 +236,14 @@ func (h *PostsHandler) DeletePostByIDHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	existingPost, err := h.PostsStore.GetPostByID(postID)
-	if err != nil {
-		utils.WriteError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	existingPostAuthor, err := h.AuthenticationStore.GetUserByID(existingPost.AuthorID.String())
-	if err != nil {
-		utils.WriteError(w, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	existingPost.Author = *existingPostAuthor
-
 	authUserID, ok := r.Context().Value(constants.UserIDKey).(string)
 	if !ok {
-		utils.WriteError(w, http.StatusUnauthorized, "email not found in context")
+		utils.WriteError(w, http.StatusUnauthorized, "user ID not found in context")
 		return
 	}
 
-	if err := utils.VerifyOwnership(existingPostAuthor.ID.String(), authUserID); err != nil {
+	_, err = h.verifyOwnership(postID, authUserID)
+	if err != nil {
 		utils.WriteError(w, http.StatusForbidden, err.Error())
 		return
 	}
@@ -258,4 +254,53 @@ func (h *PostsHandler) DeletePostByIDHandler(w http.ResponseWriter, r *http.Requ
 	}
 
 	utils.WriteJSON(w, http.StatusNoContent, nil)
+}
+
+func (h *PostsHandler) LikePostHandler(w http.ResponseWriter, r *http.Request) {
+	h.handleLikeDislikeRequest(w, r, "like")
+}
+
+func (h *PostsHandler) UnlikePostHandler(w http.ResponseWriter, r *http.Request) {
+	h.handleLikeDislikeRequest(w, r, "unlike")
+}
+
+func (h *PostsHandler) DislikePostHandler(w http.ResponseWriter, r *http.Request) {
+	h.handleLikeDislikeRequest(w, r, "dislike")
+}
+
+func (h *PostsHandler) UndislikePostHandler(w http.ResponseWriter, r *http.Request) {
+	h.handleLikeDislikeRequest(w, r, "undislike")
+}
+
+func (h *PostsHandler) handleLikeDislikeRequest(w http.ResponseWriter, r *http.Request, action string) {
+	postID, err := uuid.Parse(chi.URLParam(r, "postID"))
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	userID, ok := r.Context().Value(constants.UserIDKey).(string)
+	if !ok {
+		utils.WriteError(w, http.StatusUnauthorized, "user ID not found in context")
+		return
+	}
+
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, "invalid user UUID")
+		return
+	}
+
+	if err := h.handleLikeDislike(userUUID, postID, action); err != nil {
+		status := http.StatusInternalServerError
+		if err == errors.New("you have already liked this post") || err == errors.New("you haven't liked this post") ||
+			err == errors.New("you have already disliked this post") || err == errors.New("you haven't disliked this post") {
+			status = http.StatusConflict
+		}
+		utils.WriteError(w, status, err.Error())
+		return
+	}
+
+	postResponse, _ := h.fetchPostDetails(postID)
+	utils.WriteJSON(w, http.StatusOK, postResponse)
 }
