@@ -1,73 +1,101 @@
 # Gopher Social Backend Server
 
-This Go backend API for GopherSocial is built with chi router, JWT cookie user authentication, and supports post/comment creation with pagination. It uses PostgreSQL for data management, Zap for structured logging, and uses gorm as database ORM adapter. It also has full user authentication with user activation and password reset. Google OAuth & GitHub OAuth added for better & easier user authentication.
+This is the backend API for **GopherSocial** built using the Chi router in Go. It provides full JWT cookie-based user authentication, supports post/comment creation with pagination, and integrates OAuth for simplified login via Google and GitHub. PostgreSQL is used for data management, and Zap for structured logging. The backend leverages GORM as the ORM adapter.
 
-## Packages Used
+---
 
-1. github.com/go-chi/chi/v5
-2. github.com/go-playground/validator/v10
-3. github.com/golang-jwt/jwt/v5
-4. go.uber.org/zap
-5. golang.org/x/crypto
-6. gopkg.in/gomail.v2
-7. gorm.io/driver/postgres
-8. gorm.io/gorm
+## Key Features
 
-## Middlewares Used
+- **User Authentication**: JWT cookie-based authentication with user activation and password reset.
+- **OAuth Integration**: Supports login via Google and GitHub.
+- **Post & Comment Management**: CRUD operations for posts and comments with pagination, likes, and dislikes.
+- **Structured Logging**: Utilizes Zap for efficient, structured logs.
+- **Security & Rate Limiting**: Protects routes with rate-limiting, and supports CORS and request recovery.
 
-1. User Cookie Authentication
-2. CORS
-3. Logging
-4. Ordering
-5. Pagination (Limit & Offset)
-6. Rate Limiter
-7. RealIP
-8. Recover
-9. RequestID
-10. Timeout
+---
+
+## Packages
+
+- **Routing**: `github.com/go-chi/chi/v5`
+- **Validation**: `github.com/go-playground/validator/v10`
+- **JWT Handling**: `github.com/golang-jwt/jwt/v5`
+- **Logging**: `go.uber.org/zap`
+- **Password Hashing**: `golang.org/x/crypto`
+- **Mailing**: `gopkg.in/gomail.v2`
+- **PostgreSQL Driver**: `gorm.io/driver/postgres`
+- **ORM**: `gorm.io/gorm`
+
+---
+
+## Middlewares
+
+1. **User Authentication**: Validates user session via JWT cookies.
+2. **CORS**: Enables Cross-Origin Resource Sharing for secure API access.
+3. **Logging**: Structured logging using Zap.
+4. **Ordering**: Middleware to handle resource ordering for lists.
+5. **Pagination**: Provides limit & offset for resource pagination.
+6. **Rate Limiter**: Limits request frequency to protect against abuse.
+7. **RealIP**: Extracts real IP from request headers.
+8. **Recover**: Gracefully handles panics and returns 500 error.
+9. **RequestID**: Attaches a unique request ID to each request for tracking.
+10. **Timeout**: Configures request timeouts to prevent long-running requests.
+
+---
 
 ## Services (Apps)
 
-1. Health
-2. Authentication
-3. Posts
-4. Comments
+- **Health**: Health check endpoint.
+- **Authentication**: Handles user registration, login, password reset, and OAuth.
+- **Posts**: CRUD operations for posts and handling likes/dislikes.
+- **Comments**: CRUD operations for comments, with support for likes/dislikes.
 
-## Routes
+---
 
-    - `/health/router` - GET
+## API Routes
 
-    - `/auth/register` - POST
-    - `/auth/activate/{token}` - GET
-    - `/auth/login` - POST
-    - `/auth/logout` - POST
-    - `/auth/forgot-password` - POST
-    - `/auth/reset-password/{token}` - POST
-    - `/auth/google/login` - GET
-    - `/auth/google/callback` - GET
-    - `/auth/github/login` - GET
-    - `/auth/github/callback` - GET
+### Health Check
 
-    - `/api/v1/posts/{postID}` - GET
-    - `/api/v1/posts` - GET
-    - `/api/v1/posts` - POST
-    - `/api/v1/posts/{postID}` - PATCH
-    - `/api/v1/posts/{postID}` - DELETE
-    - `/api/v1/posts/{postID}/like` - POST
-    - `/api/v1/posts/{postID}/like` - DELETE
-    - `/api/v1/posts/{postID}/dislike` - POST
-    - `/api/v1/posts/{postID}/dislike` - DELETE
+- `GET /health/router`
 
-    - `/api/v1/comments/{commentID}` - GET
-    - `/api/v1/posts/{postID}/comments` - GET
-    - `/api/v1/posts/{postID}/comments` - POST
-    - `/api/v1/comments/{commentID}` - PUT
-    - `/api/v1/comments/{commentID}` - DELETE
-    - `/api/v1/comments/{commentID}/like` - POST
-    - `/api/v1/comments/{commentID}/like` - DELETE
-    - `/api/v1/comments/{commentID}/dislike` - POST
-    - `/api/v1/comments/{commentID}/dislike` - DELETE
+### Authentication Routes
+
+- `POST /auth/register`: Register a new user.
+- `GET /auth/activate/{token}`: Activate user account using token.
+- `POST /auth/login`: Login a user.
+- `POST /auth/logout`: Logout the user and invalidate JWT cookie.
+- `POST /auth/forgot-password`: Request a password reset.
+- `POST /auth/reset-password/{token}`: Reset the password using token.
+- `GET /auth/google/login`: Redirect to Google for OAuth login.
+- `GET /auth/google/callback`: Google OAuth callback.
+- `GET /auth/github/login`: Redirect to GitHub for OAuth login.
+- `GET /auth/github/callback`: GitHub OAuth callback.
+
+### Post Routes
+
+- `GET /api/v1/posts/{postID}`: Get a specific post by ID.
+- `GET /api/v1/posts`: Get all posts with pagination support.
+- `POST /api/v1/posts`: Create a new post.
+- `PATCH /api/v1/posts/{postID}`: Update an existing post by ID.
+- `DELETE /api/v1/posts/{postID}`: Delete a post by ID.
+- `POST /api/v1/posts/{postID}/like`: Like a post.
+- `DELETE /api/v1/posts/{postID}/like`: Remove like from a post.
+- `POST /api/v1/posts/{postID}/dislike`: Dislike a post.
+- `DELETE /api/v1/posts/{postID}/dislike`: Remove dislike from a post.
+
+### Comment Routes
+
+- `GET /api/v1/comments/{commentID}`: Get a specific comment by ID.
+- `GET /api/v1/posts/{postID}/comments`: Get comments for a specific post.
+- `POST /api/v1/posts/{postID}/comments`: Add a comment to a post.
+- `PUT /api/v1/comments/{commentID}`: Update a comment by ID.
+- `DELETE /api/v1/comments/{commentID}`: Delete a comment by ID.
+- `POST /api/v1/comments/{commentID}/like`: Like a comment.
+- `DELETE /api/v1/comments/{commentID}/like`: Remove like from a comment.
+- `POST /api/v1/comments/{commentID}/dislike`: Dislike a comment.
+- `DELETE /api/v1/comments/{commentID}/dislike`: Remove dislike from a comment.
+
+---
 
 ## Database
 
-    - PostgreSQL (Latest Docker Image)
+- **PostgreSQL**: Uses the latest Docker image of PostgreSQL for database management. The database schema is managed through GORM migrations.
