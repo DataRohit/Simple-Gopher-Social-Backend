@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"gopher-social-backend-server/cmd/server/api/services/authentication"
+	"gopher-social-backend-server/cmd/server/api/services/comments"
 	"gopher-social-backend-server/cmd/server/api/services/health"
 	"gopher-social-backend-server/cmd/server/api/services/posts"
 	"gopher-social-backend-server/internal/database"
@@ -27,6 +28,7 @@ func (app *Application) mountRoutes(router chi.Router) {
 
 	router.Route("/api/v1", func(r chi.Router) {
 		posts.RegisterPostsRoutes(r, app.Handlers.PostsHandler)
+		comments.RegisterCommentsRoutes(r, app.Handlers.CommentsHandler)
 	})
 }
 
@@ -62,6 +64,18 @@ func (app *Application) makeMigrations() {
 
 	if err := database.MigrateModel(&posts.PostDislike{}); err != nil {
 		log.Error("could not migrate model", zap.String("model", "PostDislike"), zap.Error(err))
+	}
+
+	if err := database.MigrateModel(&comments.Comment{}); err != nil {
+		log.Error("could not migrate model", zap.String("model", "Comment"), zap.Error(err))
+	}
+
+	if err := database.MigrateModel(&comments.CommentLike{}); err != nil {
+		log.Error("could not migrate model", zap.String("model", "CommentLike"), zap.Error(err))
+	}
+
+	if err := database.MigrateModel(&comments.CommentDislike{}); err != nil {
+		log.Error("could not migrate model", zap.String("model", "CommentDislike"), zap.Error(err))
 	}
 }
 
