@@ -138,3 +138,43 @@ func (h *PostsHandler) UpdatePostByIDHandler(w http.ResponseWriter, r *http.Requ
 
 	utils.WriteJSON(w, http.StatusOK, postResponse)
 }
+
+func (h *PostsHandler) DeletePostByIDHandler(w http.ResponseWriter, r *http.Request) {
+	postID, err := uuid.Parse(chi.URLParam(r, "postID"))
+	if err != nil {
+		utils.WriteError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	existingPost, err := h.PostsStore.GetPostByID(postID)
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	existingPostAuthor, err := h.AuthenticationStore.GetUserByID(existingPost.AuthorID.String())
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	existingPost.Author = *existingPostAuthor
+
+	authUserID, ok := r.Context().Value(constants.UserIDKey).(string)
+	if !ok {
+		utils.WriteError(w, http.StatusUnauthorized, "email not found in context")
+		return
+	}
+
+	if err := utils.VerifyOwnership(existingPostAuthor.ID.String(), authUserID); err != nil {
+		utils.WriteError(w, http.StatusForbidden, err.Error())
+		return
+	}
+
+	if err := h.PostsStore.DeletePost(postID); err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, "failed to delete post")
+		return
+	}
+
+	utils.WriteJSON(w, http.StatusNoContent, nil)
+}

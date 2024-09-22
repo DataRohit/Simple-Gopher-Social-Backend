@@ -9,6 +9,7 @@ type PostsStore interface {
 	CreatePost(post *Post) error
 	GetPostByID(postID uuid.UUID) (*Post, error)
 	UpdatePost(post *Post) error
+	DeletePost(postID uuid.UUID) error
 }
 
 type postsStore struct {
@@ -35,4 +36,8 @@ func (s *postsStore) GetPostByID(postID uuid.UUID) (*Post, error) {
 
 func (s *postsStore) UpdatePost(post *Post) error {
 	return s.postgresDB.Save(post).Error
+}
+
+func (s *postsStore) DeletePost(postID uuid.UUID) error {
+	return s.postgresDB.Delete(&Post{}, postID).Error
 }
