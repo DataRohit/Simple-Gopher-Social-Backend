@@ -56,6 +56,44 @@ func (h *PostsHandler) GetPostByIDHandler(w http.ResponseWriter, r *http.Request
 	utils.WriteJSON(w, http.StatusCreated, postResponse)
 }
 
+func (h *PostsHandler) GetPostsHandler(w http.ResponseWriter, r *http.Request) {
+	posts, err := h.PostsStore.GetPosts()
+	if err != nil {
+		utils.WriteError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	var postResponses []postCreateUpdateResponse
+	for _, post := range posts {
+		postAuthor, err := h.AuthenticationStore.GetUserByID(post.AuthorID.String())
+		if err != nil {
+			utils.WriteError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		post.Author = *postAuthor
+
+		postResponse := postCreateUpdateResponse{
+			ID: post.ID,
+			Author: postCreateUpdateResponseAuthor{
+				ID:        post.Author.ID,
+				FirstName: post.Author.FirstName,
+				LastName:  post.Author.LastName,
+				Email:     post.Author.Email,
+			},
+			Title:     post.Title,
+			Content:   post.Content,
+			CreatedAt: post.CreatedAt,
+			UpdatedAt: post.UpdatedAt,
+		}
+
+		postResponses = append(postResponses, postResponse)
+
+	}
+
+	utils.WriteJSON(w, http.StatusOK, postResponses)
+}
+
 func (h *PostsHandler) CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 	var payload postCreateUpdatePayload
 	if err := utils.ParseJSON(r, &payload); err != nil {

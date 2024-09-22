@@ -8,6 +8,7 @@ import (
 type PostsStore interface {
 	CreatePost(post *Post) error
 	GetPostByID(postID uuid.UUID) (*Post, error)
+	GetPosts() ([]Post, error)
 	UpdatePost(post *Post) error
 	DeletePost(postID uuid.UUID) error
 }
@@ -32,6 +33,14 @@ func (s *postsStore) GetPostByID(postID uuid.UUID) (*Post, error) {
 		return nil, err
 	}
 	return &post, nil
+}
+
+func (s *postsStore) GetPosts() ([]Post, error) {
+	var posts []Post
+	if err := s.postgresDB.Find(&posts).Error; err != nil {
+		return nil, err
+	}
+	return posts, nil
 }
 
 func (s *postsStore) UpdatePost(post *Post) error {
